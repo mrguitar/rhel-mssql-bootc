@@ -18,21 +18,17 @@ ACCEPT_EULA=Y yum install -y mssql-tools18 unixODBC-devel
 #sudo firewall-cmd --reload
 firewall-offline-cmd --zone=public --add-port=1433/tcp
 
-#why is this still a thing?
 mkdir /var/roothome
 echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bash_profile
 
-#this is a recommended setting, but seems to break the example database restore script. Commenting it for now
 #echo mssql - nofile 1048576 > /etc/security/limits.d/99-mssql-server.conf
 echo mssql >> /etc/tuned/active_profile
+systemctl enable tuned
 
 #Enable FIPS
-#echo 'kargs = ["fips=1"]' >> /usr/lib/bootc/kargs.d/fips.toml
-#update-crypto-policies --no-reload --set FIPS
+echo 'kargs = ["fips=1"]' >> /usr/lib/bootc/kargs.d/fips.toml
+update-crypto-policies --no-reload --set FIPS
 
-echo 'd /var/lib/selinux/targeted/active/modules/200/mssql 0700 - - -' > /etc/tmpfiles.d/mssql.conf
-
-systemctl enable tuned
 EOF
 
 COPY usr usr
