@@ -13,6 +13,7 @@ MSSQL_setup() {
 
     ....don't tell the security narcs about me showing a fake password ;)    
     "
+    setenforce 0
     echo ""
     MSSQL_SA_PASSWORD='Pizzaisg00d!' \
     MSSQL_PID='evaluation' \
@@ -24,10 +25,10 @@ MSSQL_test() {
         #Test connection
         read -p "
         Testing the connection using: 
-        sqlcmd -S localhost -U sa -P 'Pizzaisg00d!' -C -Q 'SELECT name FROM sys.databases
+        sqlcmd -S 127.0.0.1 -U sa -P 'Pizzaisg00d!' -C -Q 'SELECT name FROM sys.databases
         GO'"
         echo ""
-        sqlcmd -S localhost -U sa -P 'Pizzaisg00d!' -C -Q "SELECT name FROM sys.databases
+        sqlcmd -S 127.0.0.1 -U sa -P 'Pizzaisg00d!' -C -Q "SELECT name FROM sys.databases
         GO"
         echo ""
 }
@@ -38,12 +39,11 @@ DB_restore() {
         We will restore the example
         AdventureWorks2022 DB using:
 
-        sqlcmd -S localhost -U sa -P 'Pizzaisg00d!' -C -i /opt/restore.sql
-        for some reason this needs selinux disabled to work, but we'll 
-        turn it back on afterwards"
+        sqlcmd -S 127.0.0.1 -U sa -P 'Pizzaisg00d!' -C -i /opt/restore.sql
+        
+        "
         echo ""
-        setenforce 0
-        sqlcmd -S localhost -U sa -P 'Pizzaisg00d!' -C -i /opt/restore.sql
+        sqlcmd -S 127.0.0.1 -U sa -P 'Pizzaisg00d!' -C -i /opt/restore.sql
         setenforce 1
         echo ""
 }
@@ -57,7 +57,7 @@ DB_test() {
         go
         "
         echo ""
-        sqlcmd -S localhost -U sa -P 'Pizzaisg00d!' -C -Q "SELECT *
+        sqlcmd -S 127.0.0.1 -U sa -P 'Pizzaisg00d!' -C -Q "SELECT *
         FROM AdventureWorks2022.INFORMATION_SCHEMA.TABLES;
         go"
         echo ""
