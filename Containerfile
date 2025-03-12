@@ -1,6 +1,7 @@
 FROM registry.redhat.io/rhel9/rhel-bootc
 
 RUN <<EOF
+set -euox pipefail
 
 #Minor adaptations from https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-red-hat?view=sql-server-ver16&tabs=rhel9
 curl -o /etc/yum.repos.d/mssql-server.repo https://packages.microsoft.com/config/rhel/9/mssql-server-2022.repo
