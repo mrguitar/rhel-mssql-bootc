@@ -10,7 +10,7 @@ curl https://packages.microsoft.com/config/rhel/9/prod.repo | sudo tee /etc/yum.
 yum install -y firewalld tuned tuned-profiles-mssql mssql-server mssql-server-selinux
 ACCEPT_EULA=Y yum install -y mssql-tools18 unixODBC-devel
 
-#Will run post deployment
+#run post deployment
 #/opt/mssql/bin/mssql-conf setup
 
 #systemctl status mssql-server
@@ -20,20 +20,20 @@ ACCEPT_EULA=Y yum install -y mssql-tools18 unixODBC-devel
 firewall-offline-cmd --zone=public --add-port=1433/tcp
 
 mkdir /var/roothome
-echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bash_profile
+echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> /etc/skel/.bash_profile
 
 #echo mssql - nofile 1048576 > /etc/security/limits.d/99-mssql-server.conf
 echo mssql >> /etc/tuned/active_profile
 systemctl enable tuned
 
 #Enable FIPS
-echo 'kargs = ["fips=1"]' >> /usr/lib/bootc/kargs.d/fips.toml
-update-crypto-policies --no-reload --set FIPS
+#echo 'kargs = ["fips=1"]' >> /usr/lib/bootc/kargs.d/fips.toml
+#update-crypto-policies --no-reload --set FIPS
 
 EOF
 
 COPY usr usr
-ADD --chown=mssql:mssql AdventureWorks2022.bak /opt
+ADD --chown=mssql:mssql https://github.com/Microsoft/sql-server-samples/releases/download/adventureworks/AdventureWorks2022.bak /opt
 ADD --chown=mssql:mssql restore.sql /opt
 ADD --chmod=755 --chown=mssql:mssql mssql_demo.sh /opt
 
