@@ -60,6 +60,7 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: ${{ env.TAGLIST }}
+          build-args: sshpubkey=${{ secrets.SSHPUBKEY }}
           containerfiles: ${{ env.CONTAINERFILE }}
 
       - name: Log in to Quay Container registry
