@@ -1,6 +1,14 @@
 FROM quay.io/mrguitar/rhel-mssql-bootc:latest
 COPY etc/ /etc/
 COPY 05-cloud-kargs.toml /usr/lib/bootc/kargs.d/
+ARG sshpubkey
+
+RUN if test -z "$sshpubkey"; then echo "must provide sshpubkey"; exit 1; fi; \
+    useradd -G wheel core && \
+    mkdir -m 0700 -p /home/core/.ssh && \
+    echo $sshpubkey > /home/core/.ssh/authorized_keys && \
+    chmod 0600 /home/core/.ssh/authorized_keys && \
+    chown -R core: /home/core
 
 # install required packages and enable services
 RUN dnf -y install \
@@ -10,12 +18,8 @@ RUN dnf -y install \
         gdisk \
         hyperv-daemons && \
     dnf clean all && \
-    systemctl enable NetworkManager.service && \
-    systemctl enable waagent.service && \
-    systemctl enable cloud-init.service && \
-    echo 'ClientAliveInterval 180' >> /etc/ssh/sshd_config
-
-# configure waagent for cloud-init to handle provisioning
-RUN sed -i 's/Provisioning.Agent=auto/Provisioning.Agent=cloud-init/g' /etc/waagent.conf && \
+    systemctl enable NetworkManager.service waagent.service cloud-init.service && \
+    echo 'ClientAliveInterval 180' >> /etc/ssh/sshd_config && \
+    sed -i 's/Provisioning.Agent=auto/Provisioning.Agent=cloud-init/g' /etc/waagent.conf && \
     sed -i 's/ResourceDisk.Format=y/ResourceDisk.Format=n/g' /etc/waagent.conf && \
     sed -i 's/ResourceDisk.EnableSwap=y/ResourceDisk.EnableSwap=n/g' /etc/waagent.conf

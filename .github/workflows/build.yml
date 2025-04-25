@@ -1,0 +1,86 @@
+name: Build RHEL bootc image with GHA
+on:
+  schedule:
+    - cron: "0 0 * * 5"
+
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  rhel-bootc-image-build:
+    name: Build RHEL bootc image with repo access
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{github.event.repository.name}}
+      PUSHREGISTRY: quay.io/mrguitar
+      TAGLIST: latest 
+      CONTAINERFILE: Containerfile
+    container:
+      image: registry.access.redhat.com/ubi9/ubi
+      options: --privileged
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v4
+
+      - name: Get container tools in UBI builder
+        run: dnf -y install podman buildah skopeo
+
+      - name: Access a subscription via activation key
+        env:
+          SMDEV_CONTAINER_OFF: 1
+          orgid: ${{ secrets.RHT_ORGID }}
+          activation_key: ${{ secrets.RHT_ACT_KEY }}
+        run: subscription-manager register --org=$orgid --activationkey=$activation_key
+
+      # workaround for https://github.com/redhat-actions/podman-login/issues/42 since the docker config from the host doesn't come up to the container
+      - name: Workaround open podman-login action issue
+        env:
+          auth: "{ \"auths\": {} }"
+        run: |
+          mkdir -p $HOME/.docker
+          echo $auth > $HOME/.docker/config.json
+
+      - name: Log in to the RHT terms based registry
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: registry.redhat.io
+          username: ${{ secrets.RHT_REG_SVCUSER }}
+          password: ${{ secrets.RHT_REG_SVCPASS }}
+          auth_file_path: /run/containers/0/auth.json
+
+      - name: Use buildah bud to create the image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: ${{ env.TAGLIST }}
+          containerfiles: ${{ env.CONTAINERFILE }}
+
+      - name: Log in to Quay Container registry
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ${{ env.PUSHREGISTRY }}
+          username: ${{ secrets.QUAY_USER }}
+          password: ${{ secrets.QUAY_PW }}
+          auth_file_path: /run/containers/0/auth.json
+
+      - name: Push to Quay Container Repository
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ${{ env.PUSHREGISTRY }}
+
+      - name: Clean up the subscription
+        if: always()
+        env:
+          SMDEV_CONTAINER_OFF: 1
+        run: subscription-manager unregister
+
